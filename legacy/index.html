@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2e7d32">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Ventanas">
+<title>Ventanas de Aplicación</title>
+<style>
+  :root {
+    --bg: #f3f5f1; --card: #ffffff; --text: #1d2420; --muted: #6b746e; --border: #e1e5df;
+    --ok: #2e7d32; --warn: #e0a106; --bad: #d81b45; --accent: #2e7d32; --accent-soft: #e6f2e7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #101412; --card: #1a1f1c; --text: #e7ece8; --muted: #9aa49d; --border: #2c332f;
+      --ok: #3f9a45; --warn: #d79d12; --bad: #d8325a; --accent: #4caf50; --accent-soft: #1f3322;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 0 12px calc(24px + env(safe-area-inset-bottom)); }
+
+  /* Cabecera fija con selector de equipo */
+  header { position: sticky; top: 0; z-index: 10; background: var(--bg);
+    padding: calc(10px + env(safe-area-inset-top)) 12px 10px; border-bottom: 1px solid var(--border); }
+  header .in { max-width: 900px; margin: 0 auto; }
+  .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+  h1 { font-size: 1.1rem; margin: 0; }
+  .loc { display: flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--muted);
+    background: none; border: 0; padding: 4px 0; max-width: 60%; color: var(--muted); cursor: pointer; }
+  .loc span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: var(--card);
+    border: 1px solid var(--border); border-radius: 14px; padding: 5px; }
+  .seg button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px;
+    border: 0; border-radius: 10px; background: transparent; color: var(--muted); font: inherit;
+    font-size: .85rem; font-weight: 600; cursor: pointer; min-height: 56px; }
+  .seg button svg { width: 28px; height: 28px; }
+  .seg button.on { background: var(--accent); color: #fff; }
+
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px; margin-top: 12px; }
+  .card h2 { font-size: 1rem; margin: 0 0 2px; }
+  .stat { font-size: .82rem; color: var(--muted); }
+  input, button, select { font: inherit; font-size: 16px; padding: 10px 12px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--card); color: var(--text); }
+  button { cursor: pointer; }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .full { width: 100%; }
+  #search { flex: 1; min-width: 0; }
+  .results button { display: block; width: 100%; text-align: left; margin-top: 6px; }
+  .err { color: var(--bad); }
+
+  /* Ahora */
+  .badge { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px;
+    border-radius: 12px; color: #fff; font-weight: 800; font-size: 1.05rem; }
+  .badge .big { font-size: 2rem; line-height: 1; }
+  .badge small { display: block; font-weight: 600; font-size: .75rem; opacity: .9; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+  .stats div { background: var(--bg); border-radius: 10px; padding: 8px; text-align: center; }
+  .stats b { display: block; font-size: 1.15rem; }
+  .stats span { font-size: .72rem; color: var(--muted); }
+
+  /* Grilla */
+  .gridwrap { overflow-x: auto; margin-top: 8px; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+  table { border-collapse: separate; border-spacing: 3px; }
+  th.day { position: sticky; left: 0; z-index: 2; background: var(--card); text-align: left; white-space: nowrap;
+    padding: 0 8px 0 0; font-size: .85rem; line-height: 1.1; box-shadow: 8px 0 8px -8px rgba(0,0,0,.35); }
+  th.day small { display: block; color: var(--muted); font-weight: 500; font-size: .72rem; }
+  th.hh { font-size: .75rem; color: var(--muted); font-weight: 600; }
+  td.h { width: 44px; min-width: 44px; height: 54px; border-radius: 8px; color: #fff; text-align: center;
+    font-weight: 700; font-size: .9rem; cursor: pointer; line-height: 1.1; padding: 3px 0; }
+  .wi { width: 18px; height: 18px; display: inline-block; vertical-align: middle; fill: none; stroke: currentColor;
+    stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  td.h .wi { display: block; margin: 0 auto 2px; width: 18px; height: 18px; }
+  .wx { display: flex; align-items: center; gap: 6px; font-size: .8rem; font-weight: 600; margin-top: 4px; opacity: .95; }
+  .wx .wi { width: 20px; height: 20px; }
+  .badge .wibig { width: 30px; height: 30px; margin-right: 8px; }
+  .dayrow .wi { width: 22px; height: 22px; color: var(--muted); }
+  td.h small { font-size: .6rem; font-weight: 600; opacity: .85; }
+  td.h.ok { background: var(--ok); } td.h.warn { background: var(--warn); } td.h.bad { background: var(--bad); }
+  td.h.past { opacity: .3; }
+  td.h.sel { outline: 3px solid var(--text); outline-offset: 1px; }
+  .legend { display: grid; gap: 4px; font-size: .78rem; color: var(--muted); margin-top: 10px; }
+  .legend i { display: inline-block; width: 11px; height: 11px; border-radius: 3px; vertical-align: -1px; margin-right: 5px; }
+  .toggle { display: flex; align-items: center; gap: 6px; font-size: .8rem; color: var(--muted); }
+  .toggle input { width: 18px; height: 18px; padding: 0; }
+
+  #detail ul { margin: 8px 0 0; padding-left: 18px; font-size: .9rem; }
+
+  /* Resumen por día */
+  .days { display: grid; gap: 6px; margin-top: 10px; }
+  .dayrow { display: flex; gap: 8px; align-items: center; cursor: pointer;
+    font-size: .85rem; padding: 8px; border-radius: 10px; }
+  .dayrow .dname { flex: none; width: 52px; line-height: 1.1; font-weight: 600; }
+  .dayrow .dname small { display: block; font-weight: 500; color: var(--muted); font-size: .72rem; }
+  .dayrow .dico { flex: none; width: 24px; display: flex; justify-content: center; }
+  .dayrow .pct { flex: none; width: 40px; }
+  .dayrow.on { background: var(--accent-soft); }
+  .bar { flex: 1 1 auto; min-width: 60px; display: flex; height: 26px; border-radius: 7px; overflow: hidden; background: var(--border); }
+  .bar span { display: flex; align-items: center; justify-content: center; color: #fff; font-size: .72rem; font-weight: 700; overflow: hidden; }
+  .pct { font-weight: 800; text-align: right; color: var(--ok); }
+  #chart svg { width: 100%; height: auto; display: block; }
+  #chart text { fill: var(--muted); font-size: 11px; }
+
+  details summary { cursor: pointer; font-weight: 700; list-style: none; display: flex; justify-content: space-between; }
+  details summary::after { content: "▾"; color: var(--muted); }
+  details[open] summary::after { content: "▴"; }
+  .cfg { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 12px; }
+  .cfg label { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: .9rem; }
+  .cfg input { width: 84px; text-align: center; }
+  .help { font-size: .88rem; color: var(--muted); line-height: 1.5; }
+  .help p { margin: 8px 0 0; }
+  .help b { color: var(--text); }
+
+  @media (min-width: 640px) {
+    h1 { font-size: 1.3rem; }
+    .seg button { flex-direction: row; justify-content: center; gap: 8px; font-size: .95rem; min-height: 48px; }
+    .cfg { grid-template-columns: 1fr 1fr; column-gap: 24px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 14px; }
+    .stats { grid-template-columns: repeat(6, 1fr); }
+  }
+</style>
+</head>
+<body>
+<!-- Íconos del tiempo -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="wi-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></symbol>
+    <symbol id="wi-moon" viewBox="0 0 24 24"><path d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10z"/></symbol>
+    <symbol id="wi-cloud" viewBox="0 0 24 24"><path d="M6.5 18.5h11a4 4 0 0 0 0-8h-.4A5.5 5.5 0 0 0 6.6 11.6a3.45 3.45 0 0 0-.1 6.9z"/></symbol>
+    <symbol id="wi-sun-cloud" viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><path d="M8 2v1.3M2 8h1.3M3.8 3.8l.9.9M12.2 3.8l-.9.9M3.8 12.2l.9-.9"/><path d="M9.5 20.5h8a3.5 3.5 0 0 0 0-7h-.3a4.6 4.6 0 0 0-8.6 1.6 2.75 2.75 0 0 0 .9 5.4z"/></symbol>
+    <symbol id="wi-moon-cloud" viewBox="0 0 24 24"><path d="M12 7.2A5 5 0 0 1 6.2 2.5 5 5 0 1 0 12 9"/><path d="M9.5 20.5h8a3.5 3.5 0 0 0 0-7h-.3a4.6 4.6 0 0 0-8.6 1.6 2.75 2.75 0 0 0 .9 5.4z"/></symbol>
+    <symbol id="wi-fog" viewBox="0 0 24 24"><path d="M6.5 12h11a3.5 3.5 0 0 0 0-7h-.4a5 5 0 0 0-9.6 1A3 3 0 0 0 6.5 12z"/><path d="M4 15.5h16M6 19h12"/></symbol>
+    <symbol id="wi-drizzle" viewBox="0 0 24 24"><path d="M6.5 14h11a3.8 3.8 0 0 0 0-7.6h-.3A5.2 5.2 0 0 0 6.6 7.5a3.25 3.25 0 0 0-.1 6.5z"/><path d="M8 17.5v.5M12 19.5v.5M16 17.5v.5" stroke-width="2.4"/></symbol>
+    <symbol id="wi-rain" viewBox="0 0 24 24"><path d="M6.5 14h11a3.8 3.8 0 0 0 0-7.6h-.3A5.2 5.2 0 0 0 6.6 7.5a3.25 3.25 0 0 0-.1 6.5z"/><path d="M8.5 16.5l-1.2 3.5M12.5 16.5l-1.2 3.5M16.5 16.5l-1.2 3.5"/></symbol>
+    <symbol id="wi-heavy" viewBox="0 0 24 24"><path d="M6.5 13h11a3.8 3.8 0 0 0 0-7.6h-.3A5.2 5.2 0 0 0 6.6 6.5a3.25 3.25 0 0 0-.1 6.5z"/><path d="M7.5 15.5l-1.8 5M11.5 15.5l-1.8 5M15.5 15.5l-1.8 5M19 15.5l-1.4 4" stroke-width="2.1"/></symbol>
+    <symbol id="wi-storm" viewBox="0 0 24 24"><path d="M6.5 13h11a3.8 3.8 0 0 0 0-7.6h-.3A5.2 5.2 0 0 0 6.6 6.5a3.25 3.25 0 0 0-.1 6.5z"/><path d="M13 14l-3 4h4l-3 4"/></symbol>
+    <symbol id="wi-snow" viewBox="0 0 24 24"><path d="M6.5 13h11a3.8 3.8 0 0 0 0-7.6h-.3A5.2 5.2 0 0 0 6.6 6.5a3.25 3.25 0 0 0-.1 6.5z"/><path d="M12 15.5v6M9.4 17l5.2 3M14.6 17l-5.2 3"/></symbol>
+  </defs>
+</svg>
+<header>
+  <div class="in">
+    <div class="top">
+      <h1>Ventanas de aplicación</h1>
+      <button class="loc" id="locBtn" aria-label="Cambiar ubicación">📍 <span id="place">Elegir lote</span></button>
+    </div>
+    <div class="seg" id="equipo" role="tablist" aria-label="Equipo">
+      <button data-p="terrestre" role="tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="7" cy="16" r="4"/><circle cx="7" cy="16" r="1"/><circle cx="18" cy="17.5" r="2.5"/>
+          <path d="M4 12.5V5.5h5.5l2 6.5h7.5a1 1 0 0 1 1 1v2.4"/><path d="M11 16.5h4.5"/><path d="M15.5 12V7.5"/>
+        </svg>Terrestre</button>
+      <button data-p="dron" role="tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="9" y="9.5" width="6" height="5" rx="1.2"/>
+          <path d="M9 10 6.5 7.5M15 10l2.5-2.5M9 14l-2.5 2.5M15 14l2.5 2.5"/>
+          <circle cx="5" cy="6" r="2.6"/><circle cx="19" cy="6" r="2.6"/><circle cx="5" cy="18" r="2.6"/><circle cx="19" cy="18" r="2.6"/>
+        </svg>Dron</button>
+      <button data-p="avion" role="tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 2.5c.9 0 1.4.9 1.4 2V18l2.6 2v1l-4-1-4 1v-1l2.6-2V4.5c0-1.1.5-2 1.4-2z"/>
+          <path d="M10.6 9.5 3 13.5V15l7.6-1.8M13.4 9.5 21 13.5V15l-7.6-1.8"/>
+        </svg>Avión</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="card" id="locCard" hidden>
+    <h2>Ubicación del lote</h2>
+    <button class="primary full" id="gps" style="margin-top:10px">📍 Usar mi ubicación actual</button>
+    <div class="row" style="margin-top:8px">
+      <input id="search" placeholder="o buscar localidad" enterkeyhint="search" autocomplete="off">
+      <button id="go">Buscar</button>
+    </div>
+    <div class="results" id="results"></div>
+  </div>
+
+  <div class="card" id="nowCard" hidden>
+    <div class="badge" id="nowBadge"></div>
+    <div class="stats" id="nowStats"></div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <h2>% de aptitud por hora</h2>
+      <label class="toggle"><input type="checkbox" id="allHours"> 24 h</label>
+    </div>
+    <p class="stat" style="margin:2px 0 0">Deslizá hacia el costado · tocá una hora para ver el detalle</p>
+    <div class="gridwrap" id="gridwrap"><table id="grid"></table></div>
+    <div class="legend" id="legend"></div>
+    <p id="status" class="stat"></p>
+  </div>
+
+  <div class="card" id="detailCard" hidden><div id="detail"></div></div>
+
+  <div class="card" id="daysCard" hidden>
+    <h2>Resumen por día</h2>
+    <p class="stat" style="margin:2px 0 0">% de horas aptas · tocá un día para ver su curva</p>
+    <div class="days" id="days"></div>
+  </div>
+
+  <div class="card" id="chartCard" hidden>
+    <h2 id="chartTitle">Aptitud por hora</h2>
+    <p class="stat" style="margin:2px 0 8px">0–40% no apta · 40–70% marginal · 70–100% óptima</p>
+    <div id="chart"></div>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>⚙️ Ajustar criterios <span class="stat" id="cfgFor"></span></summary>
+      <div class="cfg" id="cfg"></div>
+      <p class="help">Cada equipo guarda sus propios valores. Los de fábrica son orientativos: ajustalos según el manual del equipo, la etiqueta del producto y la normativa local.</p>
+      <button id="reset" class="full">Volver a los valores de fábrica</button>
+    </details>
+  </div>
+
+  <div class="card help">
+    <details>
+      <summary>¿Qué es cada cosa?</summary>
+      <p><b>Viento:</b> con menos de 3 km/h puede haber inversión térmica y la gota queda flotando; con mucho viento, deriva a otros lotes.</p>
+      <p><b>Ráfaga:</b> golpes de viento que superan al promedio; desparraman la aplicación.</p>
+      <p><b>Delta T:</b> temperatura del aire menos temperatura de bulbo húmedo (se calcula con temperatura y humedad). Indica cuánto se evapora la gota: 2–8 ideal, 8–10 precaución, más de 10 no aplicar. Menos de 2 = aire muy húmedo, riesgo de gotas finas en suspensión.</p>
+      <p><b>Lluvia:</b> si llueve o hay alta probabilidad, el producto se lava.</p>
+      <p><b>% de aptitud:</b> puntaje de 0 a 100 según qué tan cerca está cada valor de su límite. Manda el peor factor.</p>
+      <p>Pronóstico: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> (modelos GFS, ECMWF y otros). Es una guía: siempre verificar en el lote con anemómetro.</p>
+    </details>
+  </div>
+</div>
+
+<script>
+const PROFILES = {
+  terrestre: { windMin: 3, windMax: 15, windMaxMarg: 18, gustMax: 20, gustMaxMarg: 25,
+               dtMin: 2, dtMax: 8, dtMaxMarg: 10, rainProb: 40, rainMm: 0.2 },
+  dron:      { windMin: 3, windMax: 10, windMaxMarg: 12, gustMax: 15, gustMaxMarg: 18,
+               dtMin: 2, dtMax: 6, dtMaxMarg: 8, rainProb: 40, rainMm: 0.2 },
+  avion:     { windMin: 5, windMax: 15, windMaxMarg: 18, gustMax: 20, gustMaxMarg: 25,
+               dtMin: 2, dtMax: 8, dtMaxMarg: 10, rainProb: 40, rainMm: 0.2 },
+};
+const PNAMES = { terrestre: "Terrestre", dron: "Dron", avion: "Avión" };
+const LABELS = {
+  windMin: "Viento mínimo (km/h)", windMax: "Viento máx. óptimo (km/h)", windMaxMarg: "Viento máx. marginal (km/h)",
+  gustMax: "Ráfaga máx. óptima (km/h)", gustMaxMarg: "Ráfaga máx. marginal (km/h)",
+  dtMin: "Delta T mínimo", dtMax: "Delta T máx. óptimo", dtMaxMarg: "Delta T máx. marginal",
+  rainProb: "Prob. lluvia no apta (%)", rainMm: "Lluvia no apta (mm/h)",
+};
+const DAYS = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+const PTS = ["N","NE","E","SE","S","SO","O","NO"];
+const COLORS = ["var(--ok)", "var(--warn)", "var(--bad)"];
+
+// Código de tiempo WMO (Open-Meteo) → ícono y descripción
+function wx(code, isDay = 1) {
+  const c = +code;
+  if (c === 0) return [isDay ? "sun" : "moon", "Despejado"];
+  if (c === 1) return [isDay ? "sun" : "moon", "Mayormente despejado"];
+  if (c === 2) return [isDay ? "sun-cloud" : "moon-cloud", "Parcialmente nublado"];
+  if (c === 3) return ["cloud", "Nublado"];
+  if (c === 45 || c === 48) return ["fog", "Niebla"];
+  if (c >= 51 && c <= 57) return ["drizzle", "Llovizna"];
+  if (c === 61 || c === 80) return ["rain", "Lluvia débil"];
+  if (c === 63 || c === 66 || c === 81) return ["rain", "Lluvia"];
+  if (c === 65 || c === 67 || c === 82) return ["heavy", "Lluvia fuerte"];
+  if ((c >= 71 && c <= 77) || c === 85 || c === 86) return ["snow", "Nieve"];
+  if (c >= 95) return ["storm", "Tormenta"];
+  return ["cloud", "—"];
+}
+const icon = (id, cls = "wi") => `<svg class="${cls}" aria-hidden="true"><use href="#wi-${id}"/></svg>`;
+const wxLine = h => { const [id, txt] = wx(h.code, h.isDay); return `<div class="wx">${icon(id)}${txt}</div>`; };
+
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+let profile = store.get("profile", "terrestre");
+if (!PROFILES[profile]) profile = "terrestre";
+let cfg = { ...PROFILES[profile], ...store.get("cfg_" + profile, {}) };
+let loc = store.get("loc", null);
+let data = null, selKey = null, selDay = null, needScroll = true;
+
+const $ = id => document.getElementById(id);
+const dayLabel = d => { const x = new Date(d + "T12:00:00"); return `${DAYS[x.getDay()]} ${x.getDate()}/${x.getMonth() + 1}`; };
+const hourOf = h => +h.t.slice(11, 13);
+const visible = (h, all) => all || (hourOf(h) >= 6 && hourOf(h) <= 21);
+
+// Temperatura de bulbo húmedo (fórmula de Stull 2011), T en °C, RH en %
+function wetBulb(T, RH) {
+  return T * Math.atan(0.151977 * Math.sqrt(RH + 8.313659)) + Math.atan(T + RH) - Math.atan(RH - 1.676331)
+    + 0.00391838 * Math.pow(RH, 1.5) * Math.atan(0.023101 * RH) - 4.686035;
+}
+
+function evaluate(h) {
+  const reasons = []; let level = 0; // 0 ok, 1 marginal, 2 no apta
+  const bump = (l, msg) => { level = Math.max(level, l); reasons.push([l, msg]); };
+  if (h.rain >= cfg.rainMm) bump(2, `Lluvia ${h.rain.toFixed(1)} mm`);
+  else if (h.pp != null && h.pp >= cfg.rainProb) bump(2, `Prob. lluvia ${h.pp}%`);
+  if (h.wind < cfg.windMin) bump(1, `Viento muy bajo (${h.wind.toFixed(0)} km/h): riesgo de inversión`);
+  else if (h.wind > cfg.windMaxMarg) bump(2, `Viento ${h.wind.toFixed(0)} km/h: deriva`);
+  else if (h.wind > cfg.windMax) bump(1, `Viento ${h.wind.toFixed(0)} km/h: al límite`);
+  if (h.gust > cfg.gustMaxMarg) bump(2, `Ráfagas ${h.gust.toFixed(0)} km/h`);
+  else if (h.gust > cfg.gustMax) bump(1, `Ráfagas ${h.gust.toFixed(0)} km/h: al límite`);
+  if (h.dt > cfg.dtMaxMarg) bump(2, `Delta T ${h.dt.toFixed(1)}: evaporación alta`);
+  else if (h.dt > cfg.dtMax) bump(1, `Delta T ${h.dt.toFixed(1)}: precaución, gota más gruesa`);
+  else if (h.dt < cfg.dtMin) bump(1, `Delta T ${h.dt.toFixed(1)}: aire muy húmedo, posible inversión`);
+  return { level, reasons };
+}
+
+// % de aptitud 0–100. 70–100 óptima, 40–70 marginal, 0–40 no apta (coincide con los colores)
+function upper(v, ok, marg) {
+  if (v <= ok) return 100 - 30 * (v / ok) ** 2;
+  if (v <= marg) return 70 - 30 * (v - ok) / (marg - ok);
+  return Math.max(0, 40 - 40 * (v - marg) / Math.max(marg - ok, 1) / 2);
+}
+function score(h) {
+  const s = [upper(h.wind, cfg.windMax, cfg.windMaxMarg), upper(h.gust, cfg.gustMax, cfg.gustMaxMarg),
+             upper(Math.max(h.dt, 0), cfg.dtMax, cfg.dtMaxMarg)];
+  if (h.wind < cfg.windMin) s.push(40 + 30 * h.wind / cfg.windMin);
+  if (h.dt < cfg.dtMin) s.push(40 + 30 * Math.max(h.dt, 0) / cfg.dtMin);
+  if (h.rain >= cfg.rainMm) s.push(0);
+  else if (h.pp != null) s.push(h.pp >= cfg.rainProb
+    ? 39 * (1 - (h.pp - cfg.rainProb) / Math.max(100 - cfg.rainProb, 1))
+    : 100 - 30 * h.pp / cfg.rainProb);
+  return Math.round(Math.min(...s));
+}
+
+async function load() {
+  if (!loc) { $("locCard").hidden = false; $("status").textContent = "Elegí la ubicación del lote para ver el pronóstico."; return; }
+  $("place").textContent = loc.name;
+  $("locBtn").title = `${loc.name}${loc.region ? ", " + loc.region : ""} (${(+loc.lat).toFixed(3)}, ${(+loc.lon).toFixed(3)})`;
+  $("status").textContent = "Cargando pronóstico…";
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}` +
+    `&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,wind_direction_10m,precipitation,precipitation_probability,weather_code,is_day` +
+    `&daily=weather_code&wind_speed_unit=kmh&timezone=auto&forecast_days=7`;
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json(), H = j.hourly;
+    data = H.time.map((t, i) => {
+      const T = H.temperature_2m[i], RH = H.relative_humidity_2m[i];
+      const h = { t, T, RH, wind: H.wind_speed_10m[i], gust: H.wind_gusts_10m[i], dir: H.wind_direction_10m[i],
+        rain: H.precipitation[i] ?? 0, pp: H.precipitation_probability?.[i] ?? null,
+        code: H.weather_code?.[i], isDay: H.is_day?.[i] ?? 1 };
+      h.dt = T - wetBulb(T, RH);
+      return h;
+    });
+    data.utcOffset = j.utc_offset_seconds;
+    data.dailyCode = {};
+    (j.daily?.time || []).forEach((d, i) => data.dailyCode[d] = j.daily.weather_code[i]);
+    const upd = new Date();
+    $("status").textContent = `Actualizado ${upd.getHours()}:${String(upd.getMinutes()).padStart(2, "0")} h`;
+    render();
+  } catch (e) {
+    $("status").innerHTML = `<span class="err">No se pudo cargar el pronóstico (${e.message}). Revisá la conexión.</span>`;
+  }
+}
+
+function localNowKey() {
+  // hora actual en la zona horaria del lote, formato "YYYY-MM-DDTHH"
+  return new Date(Date.now() + data.utcOffset * 1000).toISOString().slice(0, 13);
+}
+
+function render() {
+  if (!data) return;
+  const all = $("allHours").checked;
+  const nowKey = localNowKey();
+  const byDay = {};
+  data.forEach(h => (byDay[h.t.slice(0, 10)] ||= []).push(h));
+
+  let html = "", headDone = false, nowCell = null;
+  for (const d of Object.keys(byDay)) {
+    const hrs = byDay[d].filter(h => visible(h, all));
+    if (hrs.every(h => h.t.slice(0, 13) < nowKey)) continue; // día ya pasado
+    if (!headDone) {
+      html += `<tr><th class="day"></th>${hrs.map(h => `<th class="hh">${hourOf(h)}h</th>`).join("")}</tr>`;
+      headDone = true;
+    }
+    const [dn, dd] = dayLabel(d).split(" ");
+    html += `<tr><th class="day">${dn}<small>${dd}</small></th>`;
+    for (const h of hrs) {
+      const ev = evaluate(h), cls = ["ok", "warn", "bad"][ev.level];
+      const past = h.t.slice(0, 13) < nowKey ? " past" : "";
+      const sel = h.t === selKey ? " sel" : "";
+      if (!nowCell && !past) nowCell = h.t;
+      const [wid, wtxt] = wx(h.code, h.isDay);
+      html += `<td class="h ${cls}${past}${sel}" data-t="${h.t}" title="${wtxt}">${icon(wid)}${score(h)}<small>%</small></td>`;
+    }
+    html += "</tr>";
+  }
+  $("grid").innerHTML = html;
+
+  // al cargar, desplazar la grilla hasta la hora actual
+  if (needScroll && nowCell) {
+    needScroll = false;
+    const td = $("grid").querySelector(`td[data-t="${nowCell}"]`);
+    const dayW = $("grid").querySelector("th.day")?.offsetWidth || 0;
+    if (td) requestAnimationFrame(() => {
+      const wrap = $("gridwrap");
+      const left = td.getBoundingClientRect().left - wrap.getBoundingClientRect().left + wrap.scrollLeft;
+      wrap.scrollLeft = Math.max(0, left - dayW - 24);
+    });
+  }
+
+  $("legend").innerHTML =
+    `<span><i style="background:var(--ok)"></i>óptima: viento ${cfg.windMin}–${cfg.windMax} · ráfaga ≤${cfg.gustMax} · ΔT ${cfg.dtMin}–${cfg.dtMax}</span>` +
+    `<span><i style="background:var(--warn)"></i>marginal: al límite en algún parámetro</span>` +
+    `<span><i style="background:var(--bad)"></i>no apta: viento >${cfg.windMaxMarg} · ráfaga >${cfg.gustMaxMarg} · ΔT >${cfg.dtMaxMarg} o lluvia</span>`;
+
+  const cur = data.find(h => h.t.slice(0, 13) === nowKey);
+  if (cur) {
+    const ev = evaluate(cur);
+    $("nowBadge").style.background = COLORS[ev.level];
+    $("nowBadge").innerHTML = `<div><small>AHORA · ${PNAMES[profile].toUpperCase()}</small>${["ÓPTIMO PARA APLICAR", "MARGINAL", "NO APLICAR"][ev.level]}${wxLine(cur)}</div><span class="big">${score(cur)}%</span>`;
+    $("nowStats").innerHTML = stats(cur);
+    $("nowCard").hidden = false;
+  }
+  if (selKey) showDetail(selKey);
+  renderDays(byDay, all, nowKey);
+}
+
+function stats(h) {
+  const it = (v, l) => `<div><b>${v}</b><span>${l}</span></div>`;
+  return it(`${h.wind.toFixed(0)} <small>${PTS[Math.round(h.dir / 45) % 8]}</small>`, "viento km/h") +
+    it(h.gust.toFixed(0), "ráfaga km/h") + it(h.dt.toFixed(1), "Delta T") +
+    it(`${h.T.toFixed(0)}°`, "temperatura") + it(`${h.RH}%`, "humedad") + it(`${h.pp ?? "–"}%`, "prob. lluvia");
+}
+
+function showDetail(t) {
+  const h = data.find(x => x.t === t); if (!h) return;
+  const ev = evaluate(h);
+  const why = ev.reasons.length
+    ? ev.reasons.map(([l, m]) => `<li style="color:${COLORS[l]}">${m}</li>`).join("")
+    : `<li style="color:var(--ok)">Todo dentro de rango.</li>`;
+  $("detail").innerHTML =
+    `<div class="badge" style="background:${COLORS[ev.level]}"><div><small>${dayLabel(t.slice(0, 10))}</small>${t.slice(11, 16)} h${wxLine(h)}</div><span class="big">${score(h)}%</span></div>` +
+    `<div class="stats">${stats(h)}</div><ul>${why}</ul>`;
+  $("detailCard").hidden = false;
+}
+
+function renderDays(byDay, all, nowKey) {
+  const keys = Object.keys(byDay).filter(d => byDay[d].some(h => h.t.slice(0, 13) >= nowKey));
+  if (!selDay || !keys.includes(selDay)) selDay = keys[0];
+  $("days").innerHTML = keys.map(d => {
+    const hrs = byDay[d].filter(h => visible(h, all));
+    const c = [0, 0, 0]; hrs.forEach(h => c[evaluate(h).level]++);
+    const p = c.map(n => Math.round(100 * n / hrs.length));
+    const seg = (pc, col) => pc ? `<span style="width:${pc}%;background:${col}">${pc >= 18 ? pc + "%" : ""}</span>` : "";
+    return `<div class="dayrow${d === selDay ? " on" : ""}" data-d="${d}">
+      <span class="dname">${dayLabel(d).split(" ")[0]}<small>${dayLabel(d).split(" ")[1]}</small></span>
+      <span class="dico" title="${wx(data.dailyCode?.[d])[1]}">${icon(wx(data.dailyCode?.[d])[0])}</span>
+      <div class="bar">${seg(p[0], COLORS[0])}${seg(p[1], COLORS[1])}${seg(p[2], COLORS[2])}</div>
+      <span class="pct">${p[0]}%</span></div>`;
+  }).join("");
+  $("daysCard").hidden = false;
+  renderChart(byDay[selDay], all);
+}
+
+function renderChart(hours, all) {
+  const hrs = hours.filter(h => visible(h, all));
+  const W = Math.max(300, Math.min(760, $("chart").clientWidth || 340));
+  const Hh = W < 500 ? 200 : 230, L = 34, R = 8, T = 10, B = 24, n = hrs.length;
+  const x = i => L + (W - L - R) * (n > 1 ? i / (n - 1) : 0.5);
+  const y = v => T + (Hh - T - B) * (1 - v / 100);
+  const sc = hrs.map(score);
+  const step = Math.ceil(n / Math.floor((W - L) / 28));
+  const band = (a, b, col) => `<rect x="${L}" y="${y(b)}" width="${W - L - R}" height="${y(a) - y(b)}" fill="${col}" opacity=".13"/>`;
+  let svg = `<svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="Aptitud por hora">`;
+  svg += band(0, 40, "var(--bad)") + band(40, 70, "var(--warn)") + band(70, 100, "var(--ok)");
+  [0, 40, 70, 100].forEach(v => svg += `<text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${v}%</text>`);
+  hrs.forEach((h, i) => { if (i % step === 0) svg += `<text x="${x(i)}" y="${Hh - 6}" text-anchor="middle">${hourOf(h)}</text>`; });
+  svg += `<polyline fill="none" stroke="var(--text)" stroke-width="2" stroke-linejoin="round" points="${sc.map((v, i) => `${x(i)},${y(v)}`).join(" ")}"/>`;
+  sc.forEach((v, i) => {
+    svg += `<circle cx="${x(i)}" cy="${y(v)}" r="${W < 500 ? 5.5 : 5}" fill="${COLORS[evaluate(hrs[i]).level]}" stroke="var(--card)" stroke-width="1.5" style="cursor:pointer" data-t="${hrs[i].t}"><title>${hourOf(hrs[i])} h · ${v}%</title></circle>`;
+  });
+  $("chartTitle").textContent = `Aptitud por hora · ${dayLabel(selDay)}`;
+  $("chart").innerHTML = svg + "</svg>";
+  $("chartCard").hidden = false;
+}
+
+// Interacción
+$("grid").addEventListener("click", e => {
+  const td = e.target.closest("td.h"); if (!td) return;
+  selKey = td.dataset.t; selDay = selKey.slice(0, 10); render();
+  $("detailCard").scrollIntoView({ behavior: "smooth", block: "nearest" });
+});
+$("days").addEventListener("click", e => {
+  const r = e.target.closest(".dayrow"); if (!r) return;
+  selDay = r.dataset.d; render();
+});
+$("chart").addEventListener("click", e => {
+  const c = e.target.closest("circle[data-t]"); if (!c) return;
+  selKey = c.dataset.t; render();
+  $("detailCard").scrollIntoView({ behavior: "smooth", block: "nearest" });
+});
+$("allHours").addEventListener("change", () => { needScroll = true; render(); });
+let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(render, 200); });
+
+// Ubicación
+$("locBtn").onclick = () => { $("locCard").hidden = !$("locCard").hidden; if (!$("locCard").hidden) $("locCard").scrollIntoView({ behavior: "smooth" }); };
+function setLoc(l) { loc = l; store.set("loc", l); $("results").innerHTML = ""; $("locCard").hidden = true; needScroll = true; load(); }
+
+// Coordenadas → nombre de la localidad (OpenStreetMap Nominatim). Se consulta una sola vez y queda guardado.
+async function reverseName() {
+  if (!loc || !loc.gps) return;
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${loc.lat}&lon=${loc.lon}&zoom=12&accept-language=es`);
+    if (!r.ok) return;
+    const a = (await r.json()).address || {};
+    const city = a.city || a.town || a.village || a.hamlet || a.municipality || a.suburb || a.county;
+    if (!city) return;
+    loc.name = city; loc.region = a.state || "";
+    store.set("loc", loc);
+    $("place").textContent = loc.name;
+  } catch {}
+}
+
+$("gps").onclick = () => {
+  if (!navigator.geolocation) return alert("Este dispositivo no permite ubicación.");
+  $("gps").textContent = "Obteniendo ubicación…";
+  navigator.geolocation.getCurrentPosition(
+    p => { $("gps").textContent = "📍 Usar mi ubicación actual";
+      setLoc({ lat: +p.coords.latitude.toFixed(4), lon: +p.coords.longitude.toFixed(4), gps: true,
+        name: `Mi ubicación (${p.coords.latitude.toFixed(2)}, ${p.coords.longitude.toFixed(2)})` });
+      reverseName(); },
+    () => { $("gps").textContent = "📍 Usar mi ubicación actual";
+      $("results").innerHTML = '<p class="err">No se pudo obtener la ubicación. Buscá la localidad por nombre.</p>'; },
+    { enableHighAccuracy: true, timeout: 15000 });
+};
+
+async function search() {
+  const q = $("search").value.trim(); if (!q) return;
+  $("search").blur();
+  $("results").innerHTML = '<p class="stat">Buscando…</p>';
+  try {
+    const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=es`);
+    const j = await r.json();
+    if (!j.results?.length) { $("results").innerHTML = '<p class="stat">No encontré esa localidad.</p>'; return; }
+    $("results").innerHTML = "";
+    j.results.forEach(x => {
+      const b = document.createElement("button");
+      b.textContent = [x.name, x.admin1, x.country].filter(Boolean).join(", ");
+      b.onclick = () => setLoc({ lat: x.latitude, lon: x.longitude, name: x.name, region: x.admin1 || "" });
+      $("results").appendChild(b);
+    });
+  } catch { $("results").innerHTML = '<p class="err">Error al buscar.</p>'; }
+}
+$("go").onclick = search;
+$("search").addEventListener("keydown", e => { if (e.key === "Enter") search(); });
+
+// Criterios y equipo
+function buildCfg() {
+  $("cfgFor").textContent = "· " + PNAMES[profile];
+  $("cfg").innerHTML = Object.keys(PROFILES.terrestre).map(k =>
+    `<label>${LABELS[k]}<input type="number" inputmode="decimal" step="${k === "rainMm" ? 0.1 : 1}" data-k="${k}" value="${cfg[k]}"></label>`).join("");
+  $("cfg").querySelectorAll("input").forEach(inp => inp.addEventListener("change", () => {
+    const v = parseFloat(inp.value); if (isNaN(v)) return;
+    cfg[inp.dataset.k] = v; store.set("cfg_" + profile, cfg); render();
+  }));
+}
+$("reset").onclick = () => { cfg = { ...PROFILES[profile] }; store.set("cfg_" + profile, {}); buildCfg(); render(); };
+
+function setProfile(p) {
+  profile = p; store.set("profile", p);
+  cfg = { ...PROFILES[p], ...store.get("cfg_" + p, {}) };
+  document.querySelectorAll("#equipo button").forEach(b => {
+    const on = b.dataset.p === p; b.classList.toggle("on", on); b.setAttribute("aria-selected", on);
+  });
+  buildCfg(); render();
+}
+document.querySelectorAll("#equipo button").forEach(b => b.onclick = () => setProfile(b.dataset.p));
+
+setProfile(profile);
+// ubicaciones GPS guardadas antes de este cambio: buscarles el nombre
+if (loc && (loc.gps || /^Mi ubicación/.test(loc.name))) { loc.gps = true; if (/^Mi ubicación/.test(loc.name)) reverseName(); }
+load();
+setInterval(load, 30 * 60 * 1000);
+</script>
+</body>
+</html>
